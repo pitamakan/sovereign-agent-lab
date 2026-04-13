@@ -7,30 +7,37 @@ Fill this in after running exercise4_mcp_client.py.
 # ── Basic results ──────────────────────────────────────────────────────────
 
 # Tool names as shown in "Discovered N tools" output.
-TOOLS_DISCOVERED = []
+TOOLS_DISCOVERED = ["search_venues", "get_venue_details"]
 
-QUERY_1_VENUE_NAME    = "FILL_ME_IN"
-QUERY_1_VENUE_ADDRESS = "FILL_ME_IN"
-QUERY_2_FINAL_ANSWER  = "FILL_ME_IN"
+QUERY_1_VENUE_NAME    = "The Haymarket Vaults"
+QUERY_1_VENUE_ADDRESS = "1 Dalry Road, Edinburgh"
+QUERY_2_FINAL_ANSWER  = "No venues found — search_venues returned 0 matches for 300 guests with vegan options."
 
 # ── The experiment ─────────────────────────────────────────────────────────
 # Required: modify venue_server.py, rerun, revert.
 
-EX4_EXPERIMENT_DONE = None   # True or False
+EX4_EXPERIMENT_DONE = True
 
 # What changed, and which files did or didn't need updating? Min 30 words.
 EX4_EXPERIMENT_RESULT = """
-FILL ME IN
+After setting The Albanach's status to 'full' in mcp_venue_server.py, it
+disappeared from search results — Query 1 returned only The Haymarket Vaults
+instead of two venues. No agent code was touched. This demonstrates the core
+MCP value: data lives in one place, and all consumers see the update
+automatically without any changes to their own code.
 """
 
 # ── MCP vs hardcoded ───────────────────────────────────────────────────────
 
-LINES_OF_TOOL_CODE_EX2 = 0   # count in exercise2_langgraph.py
-LINES_OF_TOOL_CODE_EX4 = 0   # count in exercise4_mcp_client.py
+LINES_OF_TOOL_CODE_EX2 = 307   # count in exercise2_langgraph.py
+LINES_OF_TOOL_CODE_EX4 = 1   # count in exercise4_mcp_client.py
 
 # What does MCP buy you beyond "the tools are in a separate file"? Min 30 words.
 MCP_VALUE_PROPOSITION = """
-FILL ME IN
+MCP means the agent discovers tools at runtime rather than having them hardcoded
+at import time. Any client — LangGraph, Rasa, a future agent — connects to the
+same server and gets the same tools automatically. When the tool list or data
+changes, only the server is updated; no client code changes.
 """
 
 # ── PyNanoClaw architecture — SPECULATION QUESTION ─────────────────────────
@@ -70,11 +77,28 @@ FILL ME IN
 #     ambiguous task.
 
 WEEK_5_ARCHITECTURE = """
-- FILL ME IN
-- FILL ME IN
-- FILL ME IN
-- FILL ME IN
-- FILL ME IN
+- Planner: a strong-reasoning model that takes raw message and
+  breaks it into an ordered list of subgoals (find venue, check weather, book,
+  confirm). Lives upstream of the ReAct loop in the autonomous-loop half.
+
+- Executor (research_agent.py grown): the ReAct loop that works through the
+  planner's subgoals by calling tools. When it needs a human conversation it
+  calls handoff_to_structured instead of improvising. Lives in the autonomous
+  loop half.
+
+- Shared MCP Tool Server (mcp_venue_server.py grown): the single source of
+  truth for all capabilities — venue search, web search, calendar, email. Both
+  halves discover tools from here; neither hardcodes them. Lives in the shared
+  layer between the two halves.
+
+- Structured Agent / Handoff target (exercise3_rasa grown): the Rasa CALM
+  agent that handles the pub-manager call with deterministic business rules.
+  Receives control from the executor via the handoff bridge when a real human
+  conversation is required. Lives in the structured-agent half.
+
+- Memory store (filesystem + vector): the autonomous loop writes research
+  results to a persistent store so the structured agent can look up what was
+  agreed without re-running the research. Sits in the shared layer.
 """
 
 # ── The guiding question ───────────────────────────────────────────────────
@@ -82,5 +106,19 @@ WEEK_5_ARCHITECTURE = """
 # Must reference specific things you observed in your runs. Min 60 words.
 
 GUIDING_QUESTION_ANSWER = """
-FILL ME IN
+LangGraph handles the research: in Exercise 2 it autonomously called four tools
+in the right order, pivoted when The Bow Bar was full, and admitted failure
+honestly when no venue could fit 300 guests — all without being told the
+steps in advance. That open-ended reasoning is impossible to script.
+
+Rasa CALM handles the confirmation call: in Exercise 3 it enforced the
+£300 deposit limit exactly, refused the parking question without improvising,
+and redirected the conversation back to the booking flow. Every decision was
+auditable and guaranteed by Python, not by a prompt.
+
+Swapping them feels wrong because the research problem has no fixed path —
+a deterministic CALM flow would break the moment a venue is full. The
+confirmation call has strict financial constraints — a LangGraph agent might
+reason its way around a £300 limit if the manager argues persuasively enough.
+Each architecture is brittle in exactly the place the other is strong.
 """
